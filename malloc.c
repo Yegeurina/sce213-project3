@@ -25,6 +25,7 @@
 
 #define ALIGNMENT 32
 #define HDRSIZE sizeof(header_t)
+#define __ROUND_UP(x,shift) ((((x) >> shift) + (((x) & ((1<<shift)-1)) != 0)) << shift)
 
 static LIST_HEAD(free_list); // Don't modify this line
 static algo_t g_algo;        // Don't modify this line
@@ -42,8 +43,57 @@ static void *bp;             // Don't modify thie line
  */
 void *my_malloc(size_t size)
 {
+  header_t *header = NULL;
+  bool flag = true;
+
+  size = __ROUND_UP(size, 5);
+  // printf("size : %ld\n",size);
+
   /* Implement this function */
-  return NULL;
+  if (g_algo == 0) // First_fit
+  {
+    header_t *cursor;
+    header_t *t1, *t2;
+    list_for_each_entry(cursor,&free_list, list)
+    {
+      if(cursor->free && cursor->size>=size)
+      {
+        if(cursor->size-size<=ALIGNMENT)
+        {
+          cursor->free = false;
+        }
+        else
+        {
+          sbrk(-cursor->size);
+          t1 = sbrk(size); 
+          t1->size = size;
+          t1->free = false;
+          t2 = sbrk(cursor->size-size);
+          t2->size = cursor->size-size-HDRSIZE;
+          t2->free = true;
+          list_add_tail(&t2->list, &cursor->list);
+          list_add_tail(&t1->list, &t2->list);
+          list_del(&cursor->list);
+
+        }
+        flag = false;
+        break;
+      }
+    }
+    if(flag)
+    {
+      header = sbrk(size+HDRSIZE);
+      header->size = size;
+      header->free = false;
+      list_add_tail(&header->list, &free_list);
+    }
+  }
+  else if(g_algo == 1) //Best_fit
+  {
+    
+  }
+
+  return header;
 }
 
 /***********************************************************************
@@ -62,6 +112,7 @@ void *my_malloc(size_t size)
 void *my_realloc(void *ptr, size_t size)
 {
   /* Implement this function */
+
   return NULL;
 }
 
@@ -73,7 +124,27 @@ void *my_realloc(void *ptr, size_t size)
  */
 void my_free(void *ptr)
 {
-  /* Implement this function */
+  header_t *cursor, *temp=NULL;
+  list_for_each_entry(cursor,&free_list,list)
+  {
+    if(cursor == ptr)
+    {
+      cursor->free = true;
+      break;
+    }
+  }
+
+  list_for_each_entry(cursor, &free_list,list)
+  {
+    if(cursor->free && temp!=NULL && temp->free)
+    {
+      cursor->size += temp->size+ALIGNMENT;
+      list_del(&temp->list);
+    }
+    temp = cursor;
+  }
+  
+
   return;
 }
 
