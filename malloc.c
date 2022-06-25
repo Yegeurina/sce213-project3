@@ -52,28 +52,27 @@ void *my_malloc(size_t size)
   /* Implement this function */
   if (g_algo == 0) // First_fit
   {
-    header_t *cursor;
     header_t *t1, *t2;
-    list_for_each_entry(cursor,&free_list, list)
+    list_for_each_entry(header,&free_list, list)
     {
-      if(cursor->free && cursor->size>=size)
+      if(header->free && header->size>=size)
       {
-        if(cursor->size-size<=ALIGNMENT)
+        if(header->size-size<=ALIGNMENT)
         {
-          cursor->free = false;
+          header->free = false;
         }
         else
         {
-          sbrk(-cursor->size);
+          sbrk(-header->size);
           t1 = sbrk(size); 
           t1->size = size;
           t1->free = false;
-          t2 = sbrk(cursor->size-size);
-          t2->size = cursor->size-size-HDRSIZE;
+          t2 = sbrk(header->size-size);
+          t2->size = header->size-size-HDRSIZE;
           t2->free = true;
-          list_add_tail(&t2->list, &cursor->list);
+          list_add_tail(&t2->list, &header->list);
           list_add_tail(&t1->list, &t2->list);
-          list_del(&cursor->list);
+          list_del(&header->list);
 
         }
         flag = false;
@@ -90,7 +89,54 @@ void *my_malloc(size_t size)
   }
   else if(g_algo == 1) //Best_fit
   {
-    
+    header_t *ptr = NULL;
+    size_t temp;
+    list_for_each_entry(header,&free_list,list)
+    {
+      if(header->free)
+      {
+        if(ptr==NULL || temp>(header->size-size))
+        {
+          temp = (header->size-size);
+          ptr =  header;
+        }
+      }
+    }
+
+    header_t *t1, *t2;
+    list_for_each_entry(header,&free_list, list)
+    {
+      if(ptr==header)
+      {
+        if(header->size-size<=ALIGNMENT)
+        {
+          header->free = false;
+        }
+        else
+        {
+          sbrk(-header->size);
+          t1 = sbrk(size); 
+          t1->size = size;
+          t1->free = false;
+          t2 = sbrk(header->size-size);
+          t2->size = header->size-size-HDRSIZE;
+          t2->free = true;
+          list_add_tail(&t2->list, &header->list);
+          list_add_tail(&t1->list, &t2->list);
+          list_del(&header->list);
+
+        }
+        flag = false;
+        break;
+      }
+    }
+    if(flag)
+    {
+      header = sbrk(size+HDRSIZE);
+      header->size = size;
+      header->free = false;
+      list_add_tail(&header->list, &free_list);
+    }
   }
 
   return header;
