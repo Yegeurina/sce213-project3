@@ -187,6 +187,13 @@ void *my_malloc(size_t size)
 void *my_realloc(void *ptr, size_t size)
 {
   /* Implement this function */
+  header_t *cursor;
+  list_for_each_entry(cursor,&free_list,list)
+  {
+    if(cursor==ptr && cursor->size == size)
+      return cursor;
+  }
+  
   char *p = (char *)my_malloc(size);
   my_free(ptr);
 
