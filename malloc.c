@@ -14,6 +14,7 @@
  **********************************************************************/
 
 #include <stdio.h>
+#include<stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <stdint.h>
@@ -44,36 +45,37 @@ static void *bp;             // Don't modify thie line
 void *my_malloc(size_t size)
 {
   header_t *header = NULL;
+  header_t *temp = NULL;
   bool flag = true;
 
   size = __ROUND_UP(size, 5);
-  // printf("size : %ld\n",size);
 
+  // printf("size : %ld\n",size);
+  //printf("%p  ",sbrk(0));
+  
   /* Implement this function */
   if (g_algo == 0) // First_fit
   {
-    header_t *t1, *t2;
     list_for_each_entry(header,&free_list, list)
     {
       if(header->free && header->size>=size)
       {
-        if(header->size-size<=ALIGNMENT)
+        if(header->size-size<=HDRSIZE)
         {
           header->free = false;
         }
         else
         {
-          sbrk(-header->size);
-          t1 = sbrk(size); 
-          t1->size = size;
-          t1->free = false;
-          t2 = sbrk(header->size-size);
-          t2->size = header->size-size-HDRSIZE;
-          t2->free = true;
-          list_add_tail(&t2->list, &header->list);
-          list_add_tail(&t1->list, &t2->list);
-          list_del(&header->list);
+          temp = header+(size+HDRSIZE)/HDRSIZE;
+          temp->size = header->size-size-HDRSIZE;
+          temp->free = true;
 
+          header->size = size;
+          header->free = false;
+
+          list_add(&temp->list,&header->list);
+
+          return header;
         }
         flag = false;
         break;
@@ -90,41 +92,39 @@ void *my_malloc(size_t size)
   else if(g_algo == 1) //Best_fit
   {
     header_t *ptr = NULL;
-    size_t temp;
+    size_t temp_size;
     list_for_each_entry(header,&free_list,list)
     {
       if(header->free)
       {
-        if(ptr==NULL || temp>(header->size-size))
+        if(ptr==NULL || temp_size>(header->size-size))
         {
-          temp = (header->size-size);
+          temp_size = (header->size-size);
           ptr =  header;
         }
       }
     }
 
-    header_t *t1, *t2;
     list_for_each_entry(header,&free_list, list)
     {
       if(ptr==header)
       {
-        if(header->size-size<=ALIGNMENT)
+        if(header->size-size<=HDRSIZE)
         {
           header->free = false;
         }
         else
         {
-          sbrk(-header->size);
-          t1 = sbrk(size); 
-          t1->size = size;
-          t1->free = false;
-          t2 = sbrk(header->size-size);
-          t2->size = header->size-size-HDRSIZE;
-          t2->free = true;
-          list_add_tail(&t2->list, &header->list);
-          list_add_tail(&t1->list, &t2->list);
-          list_del(&header->list);
+          temp = header+(size+HDRSIZE)/HDRSIZE;
+          temp->size = header->size-size-HDRSIZE;
+          temp->free = true;
 
+          header->size = size;
+          header->free = false;
+
+          list_add(&temp->list,&header->list);
+
+          return header;  
         }
         flag = false;
         break;
@@ -138,7 +138,7 @@ void *my_malloc(size_t size)
       list_add_tail(&header->list, &free_list);
     }
   }
-
+  //printf("%p\n",sbrk(0));
   return header;
 }
 
@@ -170,17 +170,19 @@ void *my_realloc(void *ptr, size_t size)
  */
 void my_free(void *ptr)
 {
-  header_t *cursor, *temp=NULL;
-  list_for_each_entry(cursor,&free_list,list)
+  // printf("ptr = %p \n",ptr);
+
+  header_t *cursor, *header, *temp=NULL;
+  list_for_each_entry(header,&free_list, list)
   {
-    if(cursor == ptr)
+    if(header == ptr)
     {
-      cursor->free = true;
+      header->free = true;
       break;
     }
   }
 
-  list_for_each_entry(cursor, &free_list,list)
+  list_for_each_entry_reverse(cursor, &free_list,list)
   {
     if(cursor->free && temp!=NULL && temp->free)
     {
@@ -189,7 +191,6 @@ void my_free(void *ptr)
     }
     temp = cursor;
   }
-  
 
   return;
 }
@@ -226,7 +227,8 @@ void print_memory_layout()
   printf("===========================\n");
   list_for_each_entry(header, &free_list, list) {
     cnt++;
-    printf("%c %ld\n", (header->free) ? 'F' : 'M', header->size);
+    //printf("%p  ",header);
+    printf("%c %ld\n" , (header->free) ? 'F' : 'M', header->size);
   }
 
   printf("Number of block: %d\n", cnt);
