@@ -14,7 +14,6 @@
  **********************************************************************/
 
 #include <stdio.h>
-#include<stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <stdint.h>
@@ -194,7 +193,9 @@ void *my_realloc(void *ptr, size_t size)
       return cursor;
   }
   
-  char *p = (char *)my_malloc(size);
+  void *p = my_malloc(size);
+  size_t *len = (size_t *)((char *)ptr - HDRSIZE);
+  memcpy(p,ptr,*len);
   my_free(ptr);
 
   return p;
