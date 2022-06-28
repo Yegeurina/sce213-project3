@@ -111,7 +111,7 @@ void *my_malloc(size_t size)
     {
       if(header->free)
       {
-        if(ptr==NULL || temp_size>(header->size-size))
+        if((ptr==NULL || temp_size>(header->size-size)) && header->size>=size)
         {
           temp_size = (header->size-size);
           ptr =  header;
@@ -145,6 +145,7 @@ void *my_malloc(size_t size)
       }
       temp = header;
     }
+
     if(flag && (temp==NULL || !temp->free))
     {
       header = sbrk(size+HDRSIZE);
@@ -162,7 +163,7 @@ void *my_malloc(size_t size)
       temp->size = size;
       temp->free = false;
       list_add_tail(&header->list,&free_list);
-
+      
       return temp;
     }
   }
