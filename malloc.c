@@ -187,8 +187,10 @@ void *my_malloc(size_t size)
 void *my_realloc(void *ptr, size_t size)
 {
   /* Implement this function */
+  char *p = (char *)my_malloc(size);
+  my_free(ptr);
 
-  return NULL;
+  return p;
 }
 
 /***********************************************************************
