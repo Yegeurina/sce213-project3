@@ -52,7 +52,7 @@ void *my_malloc(size_t size)
 
   // printf("size : %ld\n",size);
   //printf("%p  ",sbrk(0));
-  
+
   /* Implement this function */
   if (g_algo == 0) // First_fit
   {
@@ -80,13 +80,27 @@ void *my_malloc(size_t size)
         flag = false;
         break;
       }
-    }
-    if(flag)
+      temp = header;
+    } 
+    if(flag && (temp==NULL || !temp->free))
     {
       header = sbrk(size+HDRSIZE);
       header->size = size;
       header->free = false;
       list_add_tail(&header->list, &free_list);
+    }
+    else if(flag && temp->free)
+    {
+      //printf("Here!\n");
+      header = sbrk(size+HDRSIZE);
+      header->size = temp->size;
+      header->free = true;
+      
+      temp->size = size;
+      temp->free = false;
+      list_add_tail(&header->list,&free_list);
+      
+      return temp;
     }
   }
   else if(g_algo == 1) //Best_fit
@@ -129,16 +143,30 @@ void *my_malloc(size_t size)
         flag = false;
         break;
       }
+      temp = header;
     }
-    if(flag)
+    if(flag && (temp==NULL || !temp->free))
     {
       header = sbrk(size+HDRSIZE);
       header->size = size;
       header->free = false;
       list_add_tail(&header->list, &free_list);
     }
+    else if(flag && temp->free)
+    {
+      //printf("Here!\n");
+      header = sbrk(size+HDRSIZE);
+      header->size = temp->size;
+      header->free = true;
+      
+      temp->size = size;
+      temp->free = false;
+      list_add_tail(&header->list,&free_list);
+
+      return temp;
+    }
   }
-  //printf("%p\n",sbrk(0));
+
   return header;
 }
 
